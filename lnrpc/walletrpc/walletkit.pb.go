@@ -6,6 +6,7 @@ package walletrpc // import "github.com/lightningnetwork/lnd/lnrpc/walletrpc"
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import lnrpc "github.com/lightningnetwork/lnd/lnrpc"
 import signrpc "github.com/lightningnetwork/lnd/lnrpc/signrpc"
 
 import (
@@ -23,6 +24,106 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
+type WitnessType int32
+
+const (
+	WitnessType_UNKNOWN_WITNESS WitnessType = 0
+	//
+	// A witness that allows us to spend the output of a commitment transaction
+	// after a relative lock-time lockout.
+	WitnessType_COMMITMENT_TIME_LOCK WitnessType = 1
+	//
+	// A witness that allows us to spend a settled no-delay output immediately on a
+	// counterparty's commitment transaction.
+	WitnessType_COMMITMENT_NO_DELAY WitnessType = 2
+	//
+	// A witness that allows us to sweep the settled output of a malicious
+	// counterparty's who broadcasts a revoked commitment transaction.
+	WitnessType_COMMITMENT_REVOKE WitnessType = 3
+	//
+	// A witness that allows us to sweep an HTLC which we offered to the remote
+	// party in the case that they broadcast a revoked commitment state.
+	WitnessType_HTLC_OFFERED_REVOKE WitnessType = 4
+	//
+	// A witness that allows us to sweep an HTLC output sent to us in the case that
+	// the remote party broadcasts a revoked commitment state.
+	WitnessType_HTLC_ACCEPTED_REVOKE WitnessType = 5
+	//
+	// A witness that allows us to sweep an HTLC output that we extended to a
+	// party, but was never fulfilled.  This HTLC output isn't directly on the
+	// commitment transaction, but is the result of a confirmed second-level HTLC
+	// transaction. As a result, we can only spend this after a CSV delay.
+	WitnessType_HTLC_OFFERED_TIMEOUT_SECOND_LEVEL WitnessType = 6
+	//
+	// A witness that allows us to sweep an HTLC output that was offered to us, and
+	// for which we have a payment preimage. This HTLC output isn't directly on our
+	// commitment transaction, but is the result of confirmed second-level HTLC
+	// transaction. As a result, we can only spend this after a CSV delay.
+	WitnessType_HTLC_ACCEPTED_SUCCESS_SECOND_LEVEL WitnessType = 7
+	//
+	// A witness that allows us to sweep an HTLC that we offered to the remote
+	// party which lies in the commitment transaction of the remote party. We can
+	// spend this output after the absolute CLTV timeout of the HTLC as passed.
+	WitnessType_HTLC_OFFERED_REMOTE_TIMEOUT WitnessType = 8
+	//
+	// A witness that allows us to sweep an HTLC that was offered to us by the
+	// remote party. We use this witness in the case that the remote party goes to
+	// chain, and we know the pre-image to the HTLC. We can sweep this without any
+	// additional timeout.
+	WitnessType_HTLC_ACCEPTED_REMOTE_SUCCESS WitnessType = 9
+	//
+	// A witness that allows us to sweep an HTLC from the remote party's commitment
+	// transaction in the case that the broadcast a revoked commitment, but then
+	// also immediately attempt to go to the second level to claim the HTLC.
+	WitnessType_HTLC_SECOND_LEVEL_REVOKE WitnessType = 10
+	//
+	// A witness type that allows us to spend a regular p2wkh output that's sent to
+	// an output which is under complete control of the backing wallet.
+	WitnessType_WITNESS_KEY_HASH WitnessType = 11
+	//
+	// A witness type that allows us to sweep an output that sends to a nested P2SH
+	// script that pays to a key solely under our control.
+	WitnessType_NESTED_WITNESS_KEY_HASH WitnessType = 12
+)
+
+var WitnessType_name = map[int32]string{
+	0:  "UNKNOWN_WITNESS",
+	1:  "COMMITMENT_TIME_LOCK",
+	2:  "COMMITMENT_NO_DELAY",
+	3:  "COMMITMENT_REVOKE",
+	4:  "HTLC_OFFERED_REVOKE",
+	5:  "HTLC_ACCEPTED_REVOKE",
+	6:  "HTLC_OFFERED_TIMEOUT_SECOND_LEVEL",
+	7:  "HTLC_ACCEPTED_SUCCESS_SECOND_LEVEL",
+	8:  "HTLC_OFFERED_REMOTE_TIMEOUT",
+	9:  "HTLC_ACCEPTED_REMOTE_SUCCESS",
+	10: "HTLC_SECOND_LEVEL_REVOKE",
+	11: "WITNESS_KEY_HASH",
+	12: "NESTED_WITNESS_KEY_HASH",
+}
+var WitnessType_value = map[string]int32{
+	"UNKNOWN_WITNESS":                    0,
+	"COMMITMENT_TIME_LOCK":               1,
+	"COMMITMENT_NO_DELAY":                2,
+	"COMMITMENT_REVOKE":                  3,
+	"HTLC_OFFERED_REVOKE":                4,
+	"HTLC_ACCEPTED_REVOKE":               5,
+	"HTLC_OFFERED_TIMEOUT_SECOND_LEVEL":  6,
+	"HTLC_ACCEPTED_SUCCESS_SECOND_LEVEL": 7,
+	"HTLC_OFFERED_REMOTE_TIMEOUT":        8,
+	"HTLC_ACCEPTED_REMOTE_SUCCESS":       9,
+	"HTLC_SECOND_LEVEL_REVOKE":           10,
+	"WITNESS_KEY_HASH":                   11,
+	"NESTED_WITNESS_KEY_HASH":            12,
+}
+
+func (x WitnessType) String() string {
+	return proto.EnumName(WitnessType_name, int32(x))
+}
+func (WitnessType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{0}
+}
 
 type KeyReq struct {
 	// *
@@ -43,7 +144,7 @@ func (m *KeyReq) Reset()         { *m = KeyReq{} }
 func (m *KeyReq) String() string { return proto.CompactTextString(m) }
 func (*KeyReq) ProtoMessage()    {}
 func (*KeyReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{0}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{0}
 }
 func (m *KeyReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KeyReq.Unmarshal(m, b)
@@ -87,7 +188,7 @@ func (m *AddrRequest) Reset()         { *m = AddrRequest{} }
 func (m *AddrRequest) String() string { return proto.CompactTextString(m) }
 func (*AddrRequest) ProtoMessage()    {}
 func (*AddrRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{1}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{1}
 }
 func (m *AddrRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AddrRequest.Unmarshal(m, b)
@@ -120,7 +221,7 @@ func (m *AddrResponse) Reset()         { *m = AddrResponse{} }
 func (m *AddrResponse) String() string { return proto.CompactTextString(m) }
 func (*AddrResponse) ProtoMessage()    {}
 func (*AddrResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{2}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{2}
 }
 func (m *AddrResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AddrResponse.Unmarshal(m, b)
@@ -160,7 +261,7 @@ func (m *Transaction) Reset()         { *m = Transaction{} }
 func (m *Transaction) String() string { return proto.CompactTextString(m) }
 func (*Transaction) ProtoMessage()    {}
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{3}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{3}
 }
 func (m *Transaction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Transaction.Unmarshal(m, b)
@@ -204,7 +305,7 @@ func (m *PublishResponse) Reset()         { *m = PublishResponse{} }
 func (m *PublishResponse) String() string { return proto.CompactTextString(m) }
 func (*PublishResponse) ProtoMessage()    {}
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{4}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{4}
 }
 func (m *PublishResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PublishResponse.Unmarshal(m, b)
@@ -248,7 +349,7 @@ func (m *SendOutputsRequest) Reset()         { *m = SendOutputsRequest{} }
 func (m *SendOutputsRequest) String() string { return proto.CompactTextString(m) }
 func (*SendOutputsRequest) ProtoMessage()    {}
 func (*SendOutputsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{5}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{5}
 }
 func (m *SendOutputsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SendOutputsRequest.Unmarshal(m, b)
@@ -295,7 +396,7 @@ func (m *SendOutputsResponse) Reset()         { *m = SendOutputsResponse{} }
 func (m *SendOutputsResponse) String() string { return proto.CompactTextString(m) }
 func (*SendOutputsResponse) ProtoMessage()    {}
 func (*SendOutputsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{6}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{6}
 }
 func (m *SendOutputsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SendOutputsResponse.Unmarshal(m, b)
@@ -335,7 +436,7 @@ func (m *EstimateFeeRequest) Reset()         { *m = EstimateFeeRequest{} }
 func (m *EstimateFeeRequest) String() string { return proto.CompactTextString(m) }
 func (*EstimateFeeRequest) ProtoMessage()    {}
 func (*EstimateFeeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{7}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{7}
 }
 func (m *EstimateFeeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EstimateFeeRequest.Unmarshal(m, b)
@@ -376,7 +477,7 @@ func (m *EstimateFeeResponse) Reset()         { *m = EstimateFeeResponse{} }
 func (m *EstimateFeeResponse) String() string { return proto.CompactTextString(m) }
 func (*EstimateFeeResponse) ProtoMessage()    {}
 func (*EstimateFeeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_walletkit_ca4e27c2068154e3, []int{8}
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{8}
 }
 func (m *EstimateFeeResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EstimateFeeResponse.Unmarshal(m, b)
@@ -403,6 +504,254 @@ func (m *EstimateFeeResponse) GetSatPerKw() int64 {
 	return 0
 }
 
+type PendingSweep struct {
+	// The outpoint of the output we're attempting to sweep.
+	Outpoint *lnrpc.OutPoint `protobuf:"bytes,1,opt,name=outpoint,proto3" json:"outpoint,omitempty"`
+	// The witness type of the output we're attempting to sweep.
+	WitnessType WitnessType `protobuf:"varint,2,opt,name=witness_type,proto3,enum=walletrpc.WitnessType" json:"witness_type,omitempty"`
+	// The value of the output we're attempting to sweep.
+	AmountSat uint32 `protobuf:"varint,3,opt,name=amount_sat,proto3" json:"amount_sat,omitempty"`
+	//
+	// The fee rate we'll use to sweep the output. The fee rate is only determined
+	// once a sweeping transaction for the output is created, so it's possible for
+	// this to be 0 before this.
+	SatPerByte uint32 `protobuf:"varint,4,opt,name=sat_per_byte,proto3" json:"sat_per_byte,omitempty"`
+	// The number of broadcast attempts we've made to sweep the output.
+	BroadcastAttempts uint32 `protobuf:"varint,5,opt,name=broadcast_attempts,proto3" json:"broadcast_attempts,omitempty"`
+	//
+	// The next height of the chain at which we'll attempt to broadcast the
+	// sweep transaction of the output.
+	NextBroadcastHeight  uint32   `protobuf:"varint,6,opt,name=next_broadcast_height,proto3" json:"next_broadcast_height,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PendingSweep) Reset()         { *m = PendingSweep{} }
+func (m *PendingSweep) String() string { return proto.CompactTextString(m) }
+func (*PendingSweep) ProtoMessage()    {}
+func (*PendingSweep) Descriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{9}
+}
+func (m *PendingSweep) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PendingSweep.Unmarshal(m, b)
+}
+func (m *PendingSweep) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PendingSweep.Marshal(b, m, deterministic)
+}
+func (dst *PendingSweep) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PendingSweep.Merge(dst, src)
+}
+func (m *PendingSweep) XXX_Size() int {
+	return xxx_messageInfo_PendingSweep.Size(m)
+}
+func (m *PendingSweep) XXX_DiscardUnknown() {
+	xxx_messageInfo_PendingSweep.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PendingSweep proto.InternalMessageInfo
+
+func (m *PendingSweep) GetOutpoint() *lnrpc.OutPoint {
+	if m != nil {
+		return m.Outpoint
+	}
+	return nil
+}
+
+func (m *PendingSweep) GetWitnessType() WitnessType {
+	if m != nil {
+		return m.WitnessType
+	}
+	return WitnessType_UNKNOWN_WITNESS
+}
+
+func (m *PendingSweep) GetAmountSat() uint32 {
+	if m != nil {
+		return m.AmountSat
+	}
+	return 0
+}
+
+func (m *PendingSweep) GetSatPerByte() uint32 {
+	if m != nil {
+		return m.SatPerByte
+	}
+	return 0
+}
+
+func (m *PendingSweep) GetBroadcastAttempts() uint32 {
+	if m != nil {
+		return m.BroadcastAttempts
+	}
+	return 0
+}
+
+func (m *PendingSweep) GetNextBroadcastHeight() uint32 {
+	if m != nil {
+		return m.NextBroadcastHeight
+	}
+	return 0
+}
+
+type PendingSweepsRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PendingSweepsRequest) Reset()         { *m = PendingSweepsRequest{} }
+func (m *PendingSweepsRequest) String() string { return proto.CompactTextString(m) }
+func (*PendingSweepsRequest) ProtoMessage()    {}
+func (*PendingSweepsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{10}
+}
+func (m *PendingSweepsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PendingSweepsRequest.Unmarshal(m, b)
+}
+func (m *PendingSweepsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PendingSweepsRequest.Marshal(b, m, deterministic)
+}
+func (dst *PendingSweepsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PendingSweepsRequest.Merge(dst, src)
+}
+func (m *PendingSweepsRequest) XXX_Size() int {
+	return xxx_messageInfo_PendingSweepsRequest.Size(m)
+}
+func (m *PendingSweepsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_PendingSweepsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PendingSweepsRequest proto.InternalMessageInfo
+
+type PendingSweepsResponse struct {
+	//
+	// The set of outputs currently being swept by lnd's central batching engine.
+	PendingSweeps        []*PendingSweep `protobuf:"bytes,1,rep,name=pending_sweeps,proto3" json:"pending_sweeps,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *PendingSweepsResponse) Reset()         { *m = PendingSweepsResponse{} }
+func (m *PendingSweepsResponse) String() string { return proto.CompactTextString(m) }
+func (*PendingSweepsResponse) ProtoMessage()    {}
+func (*PendingSweepsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{11}
+}
+func (m *PendingSweepsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PendingSweepsResponse.Unmarshal(m, b)
+}
+func (m *PendingSweepsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PendingSweepsResponse.Marshal(b, m, deterministic)
+}
+func (dst *PendingSweepsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PendingSweepsResponse.Merge(dst, src)
+}
+func (m *PendingSweepsResponse) XXX_Size() int {
+	return xxx_messageInfo_PendingSweepsResponse.Size(m)
+}
+func (m *PendingSweepsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_PendingSweepsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PendingSweepsResponse proto.InternalMessageInfo
+
+func (m *PendingSweepsResponse) GetPendingSweeps() []*PendingSweep {
+	if m != nil {
+		return m.PendingSweeps
+	}
+	return nil
+}
+
+type BumpFeeRequest struct {
+	// The input we're attempting to bump the fee of.
+	Outpoint *lnrpc.OutPoint `protobuf:"bytes,1,opt,name=outpoint,proto3" json:"outpoint,omitempty"`
+	// The target number of blocks that the input should be spent within.
+	TargetConf uint32 `protobuf:"varint,2,opt,name=target_conf,proto3" json:"target_conf,omitempty"`
+	//
+	// The fee rate, expressed in sat/byte, that should be used to spend the input
+	// with.
+	SatPerByte           uint32   `protobuf:"varint,3,opt,name=sat_per_byte,proto3" json:"sat_per_byte,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BumpFeeRequest) Reset()         { *m = BumpFeeRequest{} }
+func (m *BumpFeeRequest) String() string { return proto.CompactTextString(m) }
+func (*BumpFeeRequest) ProtoMessage()    {}
+func (*BumpFeeRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{12}
+}
+func (m *BumpFeeRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BumpFeeRequest.Unmarshal(m, b)
+}
+func (m *BumpFeeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BumpFeeRequest.Marshal(b, m, deterministic)
+}
+func (dst *BumpFeeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BumpFeeRequest.Merge(dst, src)
+}
+func (m *BumpFeeRequest) XXX_Size() int {
+	return xxx_messageInfo_BumpFeeRequest.Size(m)
+}
+func (m *BumpFeeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_BumpFeeRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BumpFeeRequest proto.InternalMessageInfo
+
+func (m *BumpFeeRequest) GetOutpoint() *lnrpc.OutPoint {
+	if m != nil {
+		return m.Outpoint
+	}
+	return nil
+}
+
+func (m *BumpFeeRequest) GetTargetConf() uint32 {
+	if m != nil {
+		return m.TargetConf
+	}
+	return 0
+}
+
+func (m *BumpFeeRequest) GetSatPerByte() uint32 {
+	if m != nil {
+		return m.SatPerByte
+	}
+	return 0
+}
+
+type BumpFeeResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BumpFeeResponse) Reset()         { *m = BumpFeeResponse{} }
+func (m *BumpFeeResponse) String() string { return proto.CompactTextString(m) }
+func (*BumpFeeResponse) ProtoMessage()    {}
+func (*BumpFeeResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_walletkit_3a6d77eb007821f1, []int{13}
+}
+func (m *BumpFeeResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BumpFeeResponse.Unmarshal(m, b)
+}
+func (m *BumpFeeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BumpFeeResponse.Marshal(b, m, deterministic)
+}
+func (dst *BumpFeeResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BumpFeeResponse.Merge(dst, src)
+}
+func (m *BumpFeeResponse) XXX_Size() int {
+	return xxx_messageInfo_BumpFeeResponse.Size(m)
+}
+func (m *BumpFeeResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_BumpFeeResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BumpFeeResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*KeyReq)(nil), "walletrpc.KeyReq")
 	proto.RegisterType((*AddrRequest)(nil), "walletrpc.AddrRequest")
@@ -413,6 +762,12 @@ func init() {
 	proto.RegisterType((*SendOutputsResponse)(nil), "walletrpc.SendOutputsResponse")
 	proto.RegisterType((*EstimateFeeRequest)(nil), "walletrpc.EstimateFeeRequest")
 	proto.RegisterType((*EstimateFeeResponse)(nil), "walletrpc.EstimateFeeResponse")
+	proto.RegisterType((*PendingSweep)(nil), "walletrpc.PendingSweep")
+	proto.RegisterType((*PendingSweepsRequest)(nil), "walletrpc.PendingSweepsRequest")
+	proto.RegisterType((*PendingSweepsResponse)(nil), "walletrpc.PendingSweepsResponse")
+	proto.RegisterType((*BumpFeeRequest)(nil), "walletrpc.BumpFeeRequest")
+	proto.RegisterType((*BumpFeeResponse)(nil), "walletrpc.BumpFeeResponse")
+	proto.RegisterEnum("walletrpc.WitnessType", WitnessType_name, WitnessType_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -455,6 +810,43 @@ type WalletKitClient interface {
 	// determine the fee (in sat/kw) to attach to a transaction in order to
 	// achieve the confirmation target.
 	EstimateFee(ctx context.Context, in *EstimateFeeRequest, opts ...grpc.CallOption) (*EstimateFeeResponse, error)
+	//
+	// PendingSweeps returns lists of on-chain outputs that lnd is currently
+	// attempting to sweep within its central batching engine. Outputs with similar
+	// fee rates are batched together in order to sweep them within a single
+	// transaction.
+	//
+	// NOTE: Some of the fields within PendingSweepsRequest are not guaranteed to
+	// remain supported. This is an advanced API that depends on the internals of
+	// the UtxoSweeper, so things may change.
+	PendingSweeps(ctx context.Context, in *PendingSweepsRequest, opts ...grpc.CallOption) (*PendingSweepsResponse, error)
+	//
+	// Bump the fee of an arbitrary input within a transaction. This RPC takes a
+	// different approach than bitcoind's bumpfee command. lnd has a central
+	// batching engine in which inputs with similar fee rates are batched together
+	// to save on transaction fees. Due to this, we cannot rely on bumping the fee
+	// on a specific transaction, since transactions can change at any point with
+	// the addition of new inputs. The list of inputs that currently exist within
+	// lnd's central batching engine can be retrieved through the PendingSweeps
+	// RPC.
+	//
+	// When bumping the fee of an input that currently exists within lnd's central
+	// batching engine, a higher fee transaction will be created that replaces the
+	// lower fee transaction through the Replace-By-Fee (RBF) policy. If it
+	//
+	// This RPC also serves useful when wanting to perform a Child-Pays-For-Parent
+	// (CPFP), where the child transaction pays for its parent's fee. This can be
+	// done by specifying an outpoint within the low fee transaction that is under
+	// the control of the wallet.
+	//
+	// The fee preference can be expressed either as a specific fee rate or a delta
+	// of blocks in which the output should be swept on-chain within. If a fee
+	// preference is not explicitly specified, then an error is returned.
+	//
+	// Note that this RPC currently doesn't perform any validation checks on the
+	// fee preference being provided. For now, the responsibility of ensuring that
+	// the new fee preference is sufficient is delegated to the user.
+	BumpFee(ctx context.Context, in *BumpFeeRequest, opts ...grpc.CallOption) (*BumpFeeResponse, error)
 }
 
 type walletKitClient struct {
@@ -519,6 +911,24 @@ func (c *walletKitClient) EstimateFee(ctx context.Context, in *EstimateFeeReques
 	return out, nil
 }
 
+func (c *walletKitClient) PendingSweeps(ctx context.Context, in *PendingSweepsRequest, opts ...grpc.CallOption) (*PendingSweepsResponse, error) {
+	out := new(PendingSweepsResponse)
+	err := c.cc.Invoke(ctx, "/walletrpc.WalletKit/PendingSweeps", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *walletKitClient) BumpFee(ctx context.Context, in *BumpFeeRequest, opts ...grpc.CallOption) (*BumpFeeResponse, error) {
+	out := new(BumpFeeResponse)
+	err := c.cc.Invoke(ctx, "/walletrpc.WalletKit/BumpFee", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WalletKitServer is the server API for WalletKit service.
 type WalletKitServer interface {
 	// *
@@ -549,6 +959,43 @@ type WalletKitServer interface {
 	// determine the fee (in sat/kw) to attach to a transaction in order to
 	// achieve the confirmation target.
 	EstimateFee(context.Context, *EstimateFeeRequest) (*EstimateFeeResponse, error)
+	//
+	// PendingSweeps returns lists of on-chain outputs that lnd is currently
+	// attempting to sweep within its central batching engine. Outputs with similar
+	// fee rates are batched together in order to sweep them within a single
+	// transaction.
+	//
+	// NOTE: Some of the fields within PendingSweepsRequest are not guaranteed to
+	// remain supported. This is an advanced API that depends on the internals of
+	// the UtxoSweeper, so things may change.
+	PendingSweeps(context.Context, *PendingSweepsRequest) (*PendingSweepsResponse, error)
+	//
+	// Bump the fee of an arbitrary input within a transaction. This RPC takes a
+	// different approach than bitcoind's bumpfee command. lnd has a central
+	// batching engine in which inputs with similar fee rates are batched together
+	// to save on transaction fees. Due to this, we cannot rely on bumping the fee
+	// on a specific transaction, since transactions can change at any point with
+	// the addition of new inputs. The list of inputs that currently exist within
+	// lnd's central batching engine can be retrieved through the PendingSweeps
+	// RPC.
+	//
+	// When bumping the fee of an input that currently exists within lnd's central
+	// batching engine, a higher fee transaction will be created that replaces the
+	// lower fee transaction through the Replace-By-Fee (RBF) policy. If it
+	//
+	// This RPC also serves useful when wanting to perform a Child-Pays-For-Parent
+	// (CPFP), where the child transaction pays for its parent's fee. This can be
+	// done by specifying an outpoint within the low fee transaction that is under
+	// the control of the wallet.
+	//
+	// The fee preference can be expressed either as a specific fee rate or a delta
+	// of blocks in which the output should be swept on-chain within. If a fee
+	// preference is not explicitly specified, then an error is returned.
+	//
+	// Note that this RPC currently doesn't perform any validation checks on the
+	// fee preference being provided. For now, the responsibility of ensuring that
+	// the new fee preference is sufficient is delegated to the user.
+	BumpFee(context.Context, *BumpFeeRequest) (*BumpFeeResponse, error)
 }
 
 func RegisterWalletKitServer(s *grpc.Server, srv WalletKitServer) {
@@ -663,6 +1110,42 @@ func _WalletKit_EstimateFee_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WalletKit_PendingSweeps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PendingSweepsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WalletKitServer).PendingSweeps(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/walletrpc.WalletKit/PendingSweeps",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WalletKitServer).PendingSweeps(ctx, req.(*PendingSweepsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WalletKit_BumpFee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BumpFeeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WalletKitServer).BumpFee(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/walletrpc.WalletKit/BumpFee",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WalletKitServer).BumpFee(ctx, req.(*BumpFeeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _WalletKit_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "walletrpc.WalletKit",
 	HandlerType: (*WalletKitServer)(nil),
@@ -691,48 +1174,84 @@ var _WalletKit_serviceDesc = grpc.ServiceDesc{
 			MethodName: "EstimateFee",
 			Handler:    _WalletKit_EstimateFee_Handler,
 		},
+		{
+			MethodName: "PendingSweeps",
+			Handler:    _WalletKit_PendingSweeps_Handler,
+		},
+		{
+			MethodName: "BumpFee",
+			Handler:    _WalletKit_BumpFee_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "walletrpc/walletkit.proto",
 }
 
 func init() {
-	proto.RegisterFile("walletrpc/walletkit.proto", fileDescriptor_walletkit_ca4e27c2068154e3)
+	proto.RegisterFile("walletrpc/walletkit.proto", fileDescriptor_walletkit_3a6d77eb007821f1)
 }
 
-var fileDescriptor_walletkit_ca4e27c2068154e3 = []byte{
-	// 524 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x53, 0x5d, 0x6f, 0xd3, 0x30,
-	0x14, 0xd5, 0x56, 0x56, 0xd6, 0xdb, 0x76, 0x80, 0xcb, 0x46, 0x89, 0x18, 0x4c, 0x81, 0x87, 0x3e,
-	0xa0, 0x54, 0x6c, 0x02, 0x21, 0x78, 0x02, 0x6d, 0xd3, 0xa4, 0x4e, 0xac, 0x84, 0x4a, 0x48, 0x08,
-	0x29, 0x72, 0x93, 0xbb, 0xd4, 0x6a, 0x6a, 0x67, 0xce, 0x0d, 0x49, 0xfe, 0x0f, 0x3f, 0x14, 0xe5,
-	0xa3, 0x5d, 0x4a, 0x19, 0x4f, 0x71, 0x8e, 0xcf, 0x3d, 0xbe, 0xd7, 0xe7, 0x18, 0x9e, 0x26, 0x3c,
-	0x08, 0x90, 0x74, 0xe8, 0x0e, 0xcb, 0xd5, 0x5c, 0x90, 0x15, 0x6a, 0x45, 0x8a, 0xb5, 0x56, 0x5b,
-	0xc6, 0xe3, 0x48, 0xf8, 0x32, 0xe7, 0xe4, 0x5f, 0xd4, 0x25, 0xc1, 0xfc, 0x0a, 0xcd, 0x11, 0x66,
-	0x36, 0xde, 0xb0, 0x01, 0x3c, 0x9c, 0x63, 0xe6, 0x5c, 0x0b, 0xe9, 0xa3, 0x76, 0x42, 0x2d, 0x24,
-	0xf5, 0xb7, 0x8e, 0xb6, 0x06, 0x3b, 0xf6, 0xde, 0x1c, 0xb3, 0xf3, 0x02, 0x1e, 0xe7, 0x28, 0x3b,
-	0x04, 0x28, 0x98, 0x7c, 0x21, 0x82, 0xac, 0xbf, 0x5d, 0x70, 0x5a, 0x39, 0xa7, 0x00, 0xcc, 0x2e,
-	0xb4, 0x3f, 0x79, 0x9e, 0xb6, 0xf1, 0x26, 0xc6, 0x88, 0x4c, 0x13, 0x3a, 0xe5, 0x6f, 0x14, 0x2a,
-	0x19, 0x21, 0x63, 0x70, 0x8f, 0x7b, 0x9e, 0x2e, 0xb4, 0x5b, 0x76, 0xb1, 0x36, 0x5f, 0x41, 0x7b,
-	0xa2, 0xb9, 0x8c, 0xb8, 0x4b, 0x42, 0x49, 0xb6, 0x0f, 0x4d, 0x4a, 0x9d, 0x19, 0xa6, 0x05, 0xa9,
-	0x63, 0xef, 0x50, 0x7a, 0x81, 0xa9, 0xf9, 0x0e, 0x1e, 0x8c, 0xe3, 0x69, 0x20, 0xa2, 0xd9, 0x4a,
-	0xec, 0x25, 0x74, 0xc3, 0x12, 0x72, 0x50, 0x6b, 0xb5, 0x54, 0xed, 0x54, 0xe0, 0x59, 0x8e, 0x99,
-	0x3f, 0x81, 0x7d, 0x43, 0xe9, 0x5d, 0xc5, 0x14, 0xc6, 0x14, 0x55, 0x7d, 0xb1, 0x67, 0x00, 0x11,
-	0x27, 0x27, 0x44, 0xed, 0xcc, 0x93, 0xa2, 0xae, 0x61, 0xef, 0x46, 0x9c, 0xc6, 0xa8, 0x47, 0x09,
-	0x1b, 0xc0, 0x7d, 0x55, 0xf2, 0xfb, 0xdb, 0x47, 0x8d, 0x41, 0xfb, 0x78, 0xcf, 0xaa, 0xee, 0xcf,
-	0x9a, 0xa4, 0x57, 0x31, 0xd9, 0xcb, 0x6d, 0xf3, 0x35, 0xf4, 0xd6, 0xd4, 0xab, 0xce, 0xf6, 0xa1,
-	0xa9, 0x79, 0xe2, 0xd0, 0x6a, 0x06, 0xcd, 0x93, 0x49, 0x6a, 0xbe, 0x05, 0x76, 0x16, 0x91, 0x58,
-	0x70, 0xc2, 0x73, 0xc4, 0x65, 0x2f, 0x2f, 0xa0, 0xed, 0x2a, 0x79, 0xed, 0x10, 0xd7, 0x3e, 0x2e,
-	0xaf, 0x1d, 0x72, 0x68, 0x52, 0x20, 0xe6, 0x09, 0xf4, 0xd6, 0xca, 0xaa, 0x43, 0xfe, 0x3b, 0xc3,
-	0xf1, 0xef, 0x06, 0xb4, 0xbe, 0x17, 0xfe, 0x8f, 0x04, 0xb1, 0x0f, 0xd0, 0x3d, 0x45, 0x2d, 0x7e,
-	0xe1, 0x17, 0x4c, 0x69, 0x84, 0x19, 0x7b, 0x64, 0xad, 0xc2, 0x61, 0x95, 0x19, 0x30, 0x0e, 0x56,
-	0x43, 0x8e, 0x30, 0x3b, 0xc5, 0xc8, 0xd5, 0x22, 0x24, 0xa5, 0xd9, 0x7b, 0x68, 0x95, 0xb5, 0x79,
-	0x5d, 0xaf, 0x4e, 0xba, 0x54, 0x2e, 0x27, 0xa5, 0xef, 0xac, 0xfc, 0x08, 0xbb, 0xf9, 0x79, 0x79,
-	0x02, 0xd8, 0x41, 0xed, 0xc0, 0x5a, 0x42, 0x8c, 0x27, 0x1b, 0x78, 0x35, 0xde, 0x05, 0xb0, 0xca,
-	0xf0, 0x7a, 0x3a, 0xea, 0x32, 0x35, 0xdc, 0x30, 0x6a, 0xf8, 0xdf, 0x39, 0xb9, 0x84, 0x76, 0xcd,
-	0x24, 0x76, 0x58, 0xa3, 0x6e, 0x46, 0xc3, 0x78, 0x7e, 0xd7, 0xf6, 0xad, 0x5a, 0xcd, 0x8d, 0x35,
-	0xb5, 0x4d, 0x73, 0xd7, 0xd4, 0xfe, 0x61, 0xe2, 0xe7, 0x37, 0x3f, 0x86, 0xbe, 0xa0, 0x59, 0x3c,
-	0xb5, 0x5c, 0xb5, 0x18, 0x06, 0xc2, 0x9f, 0x91, 0x14, 0xd2, 0x97, 0x48, 0x89, 0xd2, 0xf3, 0x61,
-	0x20, 0xbd, 0x61, 0x20, 0x6f, 0x1f, 0xb7, 0x0e, 0xdd, 0x69, 0xb3, 0x78, 0xbc, 0x27, 0x7f, 0x02,
-	0x00, 0x00, 0xff, 0xff, 0x2d, 0xbb, 0xcd, 0x97, 0xfa, 0x03, 0x00, 0x00,
+var fileDescriptor_walletkit_3a6d77eb007821f1 = []byte{
+	// 976 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xed, 0x6e, 0xe2, 0x46,
+	0x14, 0x2d, 0x21, 0x61, 0xc3, 0x05, 0x12, 0x67, 0x08, 0x89, 0x97, 0xcd, 0x6e, 0xa8, 0xfb, 0x21,
+	0xd4, 0x56, 0xa0, 0x66, 0xdb, 0xaa, 0x6a, 0x7f, 0xb4, 0x59, 0x70, 0x44, 0xc4, 0x87, 0xa9, 0xed,
+	0x6c, 0xba, 0x55, 0xa5, 0x91, 0x81, 0x59, 0xb0, 0x00, 0xdb, 0x3b, 0x1e, 0x0a, 0xfc, 0x6d, 0x9f,
+	0xa4, 0xaf, 0xd1, 0xa7, 0xab, 0x3c, 0xb6, 0xc9, 0x18, 0x92, 0x4a, 0xfd, 0x15, 0xe7, 0x9c, 0x73,
+	0xcf, 0xdc, 0xb9, 0x33, 0x73, 0x04, 0x3c, 0x5f, 0x5a, 0xb3, 0x19, 0x61, 0xd4, 0x1b, 0xd6, 0xc3,
+	0xaf, 0xa9, 0xcd, 0x6a, 0x1e, 0x75, 0x99, 0x8b, 0xb2, 0x1b, 0xaa, 0x9c, 0xa5, 0xde, 0x30, 0x44,
+	0xcb, 0xa7, 0xbe, 0x3d, 0x76, 0x02, 0x79, 0xf0, 0x97, 0xd0, 0x10, 0x55, 0x7e, 0x81, 0x4c, 0x9b,
+	0xac, 0x75, 0xf2, 0x01, 0x55, 0x41, 0x9a, 0x92, 0x35, 0x7e, 0x6f, 0x3b, 0x63, 0x42, 0xb1, 0x47,
+	0x6d, 0x87, 0xc9, 0xa9, 0x4a, 0xaa, 0x7a, 0xa0, 0x1f, 0x4d, 0xc9, 0xfa, 0x86, 0xc3, 0xfd, 0x00,
+	0x45, 0x2f, 0x01, 0xb8, 0xd2, 0x9a, 0xdb, 0xb3, 0xb5, 0xbc, 0xc7, 0x35, 0xd9, 0x40, 0xc3, 0x01,
+	0xa5, 0x00, 0xb9, 0xeb, 0xd1, 0x88, 0xea, 0xe4, 0xc3, 0x82, 0xf8, 0x4c, 0x51, 0x20, 0x1f, 0xfe,
+	0xeb, 0x7b, 0xae, 0xe3, 0x13, 0x84, 0x60, 0xdf, 0x1a, 0x8d, 0x28, 0xf7, 0xce, 0xea, 0xfc, 0x5b,
+	0xf9, 0x14, 0x72, 0x26, 0xb5, 0x1c, 0xdf, 0x1a, 0x32, 0xdb, 0x75, 0x50, 0x09, 0x32, 0x6c, 0x85,
+	0x27, 0x64, 0xc5, 0x45, 0x79, 0xfd, 0x80, 0xad, 0x5a, 0x64, 0xa5, 0x7c, 0x07, 0xc7, 0xfd, 0xc5,
+	0x60, 0x66, 0xfb, 0x93, 0x8d, 0xd9, 0x27, 0x50, 0xf0, 0x42, 0x08, 0x13, 0x4a, 0xdd, 0xd8, 0x35,
+	0x1f, 0x81, 0x6a, 0x80, 0x29, 0xbf, 0x03, 0x32, 0x88, 0x33, 0xd2, 0x16, 0xcc, 0x5b, 0x30, 0x3f,
+	0xea, 0x0b, 0x5d, 0x00, 0xf8, 0x16, 0xc3, 0x1e, 0xa1, 0x78, 0xba, 0xe4, 0x75, 0x69, 0xfd, 0xd0,
+	0xb7, 0x58, 0x9f, 0xd0, 0xf6, 0x12, 0x55, 0xe1, 0x99, 0x1b, 0xea, 0xe5, 0xbd, 0x4a, 0xba, 0x9a,
+	0xbb, 0x3a, 0xaa, 0x45, 0xf3, 0xab, 0x99, 0x2b, 0x6d, 0xc1, 0xf4, 0x98, 0x56, 0xbe, 0x82, 0x62,
+	0xc2, 0x3d, 0xea, 0xac, 0x04, 0x19, 0x6a, 0x2d, 0x31, 0xdb, 0xec, 0x81, 0x5a, 0x4b, 0x73, 0xa5,
+	0x7c, 0x0b, 0x48, 0xf5, 0x99, 0x3d, 0xb7, 0x18, 0xb9, 0x21, 0x24, 0xee, 0xe5, 0x12, 0x72, 0x43,
+	0xd7, 0x79, 0x8f, 0x99, 0x45, 0xc7, 0x24, 0x1e, 0x3b, 0x04, 0x90, 0xc9, 0x11, 0xe5, 0x35, 0x14,
+	0x13, 0x65, 0xd1, 0x22, 0xff, 0xb9, 0x07, 0xe5, 0xef, 0x3d, 0xc8, 0xf7, 0x89, 0x33, 0xb2, 0x9d,
+	0xb1, 0xb1, 0x24, 0xc4, 0x43, 0x5f, 0xc2, 0x61, 0xd0, 0xb5, 0x1b, 0x1f, 0x6d, 0xee, 0xea, 0xb8,
+	0x36, 0xe3, 0x7b, 0xd2, 0x16, 0xac, 0x1f, 0xc0, 0xfa, 0x46, 0x80, 0x7e, 0x80, 0xfc, 0xd2, 0x66,
+	0x0e, 0xf1, 0x7d, 0xcc, 0xd6, 0x1e, 0xe1, 0xe7, 0x7c, 0x74, 0x75, 0x56, 0xdb, 0x5c, 0xae, 0xda,
+	0x7d, 0x48, 0x9b, 0x6b, 0x8f, 0xe8, 0x09, 0x2d, 0x7a, 0x05, 0x60, 0xcd, 0xdd, 0x85, 0xc3, 0xb0,
+	0x6f, 0x31, 0x39, 0x5d, 0x49, 0x55, 0x0b, 0xba, 0x80, 0x20, 0x05, 0xf2, 0x71, 0xdf, 0x83, 0x35,
+	0x23, 0xf2, 0x3e, 0x57, 0x24, 0x30, 0x54, 0x03, 0x34, 0xa0, 0xae, 0x35, 0x1a, 0x5a, 0x3e, 0xc3,
+	0x16, 0x63, 0x64, 0xee, 0x31, 0x5f, 0x3e, 0xe0, 0xca, 0x47, 0x18, 0xf4, 0x0d, 0x94, 0x1c, 0xb2,
+	0x62, 0xf8, 0x81, 0x9a, 0x10, 0x7b, 0x3c, 0x61, 0x72, 0x86, 0x97, 0x3c, 0x4e, 0x2a, 0x67, 0x70,
+	0x2a, 0x8e, 0x28, 0xbe, 0x1d, 0xca, 0xaf, 0x50, 0xda, 0xc2, 0xa3, 0x91, 0xff, 0x04, 0x47, 0x5e,
+	0x48, 0x60, 0x9f, 0x33, 0x72, 0x8a, 0xdf, 0x8f, 0x73, 0x61, 0x30, 0x62, 0xa5, 0xbe, 0x25, 0x57,
+	0xfe, 0x4a, 0xc1, 0xd1, 0x9b, 0xc5, 0xdc, 0x13, 0x8e, 0xff, 0x7f, 0x9d, 0x4b, 0x05, 0x72, 0xe1,
+	0x35, 0xc1, 0xc1, 0xfd, 0xe0, 0xc7, 0x52, 0xd0, 0x45, 0x68, 0x67, 0xba, 0xe9, 0xdd, 0xe9, 0x2a,
+	0x27, 0x70, 0xbc, 0x69, 0x22, 0xdc, 0xd9, 0x17, 0x7f, 0xa6, 0x21, 0x27, 0x1c, 0x29, 0x2a, 0xc2,
+	0xf1, 0x5d, 0xaf, 0xdd, 0xd3, 0xee, 0x7b, 0xf8, 0xfe, 0xd6, 0xec, 0xa9, 0x86, 0x21, 0x7d, 0x84,
+	0x64, 0x38, 0x6d, 0x68, 0xdd, 0xee, 0xad, 0xd9, 0x55, 0x7b, 0x26, 0x36, 0x6f, 0xbb, 0x2a, 0xee,
+	0x68, 0x8d, 0xb6, 0x94, 0x42, 0xe7, 0x50, 0x14, 0x98, 0x9e, 0x86, 0x9b, 0x6a, 0xe7, 0xfa, 0x9d,
+	0xb4, 0x87, 0x4a, 0x70, 0x22, 0x10, 0xba, 0xfa, 0x56, 0x6b, 0xab, 0x52, 0x3a, 0xd0, 0xb7, 0xcc,
+	0x4e, 0x03, 0x6b, 0x37, 0x37, 0xaa, 0xae, 0x36, 0x63, 0x62, 0x3f, 0x58, 0x82, 0x13, 0xd7, 0x8d,
+	0x86, 0xda, 0x37, 0x1f, 0x98, 0x03, 0xf4, 0x19, 0x7c, 0x9c, 0x28, 0x09, 0x96, 0xd7, 0xee, 0x4c,
+	0x6c, 0xa8, 0x0d, 0xad, 0xd7, 0xc4, 0x1d, 0xf5, 0xad, 0xda, 0x91, 0x32, 0xe8, 0x73, 0x50, 0x92,
+	0x06, 0xc6, 0x5d, 0xa3, 0xa1, 0x1a, 0x46, 0x52, 0xf7, 0x0c, 0x5d, 0xc2, 0x8b, 0xad, 0x0e, 0xba,
+	0x9a, 0xa9, 0xc6, 0xae, 0xd2, 0x21, 0xaa, 0xc0, 0xc5, 0x76, 0x27, 0x5c, 0x11, 0xf9, 0x49, 0x59,
+	0x74, 0x01, 0x32, 0x57, 0x88, 0xce, 0x71, 0xbf, 0x80, 0x4e, 0x41, 0x8a, 0x26, 0x87, 0xdb, 0xea,
+	0x3b, 0xdc, 0xba, 0x36, 0x5a, 0x52, 0x0e, 0xbd, 0x80, 0xf3, 0x9e, 0x6a, 0x04, 0x76, 0x3b, 0x64,
+	0xfe, 0xea, 0x9f, 0x7d, 0xc8, 0xde, 0xf3, 0x8b, 0xd4, 0xb6, 0x83, 0x37, 0x58, 0x68, 0x12, 0x6a,
+	0xff, 0x41, 0x7a, 0x64, 0xc5, 0xda, 0x64, 0x8d, 0x4e, 0x84, 0x5b, 0x16, 0xe6, 0x76, 0xf9, 0x6c,
+	0x13, 0x4c, 0x6d, 0xb2, 0x6e, 0x12, 0x7f, 0x48, 0x6d, 0x8f, 0xb9, 0x14, 0x7d, 0x0f, 0xd9, 0xb0,
+	0x36, 0xa8, 0x2b, 0x8a, 0xa2, 0x8e, 0x3b, 0xb4, 0x98, 0x4b, 0x9f, 0xac, 0xfc, 0x11, 0x0e, 0x83,
+	0xf5, 0x82, 0xd4, 0x46, 0xe2, 0x7b, 0x17, 0x52, 0xbd, 0x7c, 0xbe, 0x83, 0x47, 0xef, 0xa3, 0x05,
+	0x28, 0x0a, 0x69, 0x31, 0xd1, 0x45, 0x1b, 0x01, 0x2f, 0x97, 0xc5, 0x57, 0xb3, 0x95, 0xed, 0x1d,
+	0xc8, 0x09, 0xc1, 0x8a, 0x5e, 0x0a, 0xd2, 0xdd, 0x38, 0x2f, 0xbf, 0x7a, 0x8a, 0x7e, 0x70, 0x13,
+	0x12, 0x34, 0xe1, 0xb6, 0x1b, 0xc8, 0x09, 0xb7, 0xc7, 0x82, 0x57, 0x87, 0x42, 0x22, 0x1e, 0xd0,
+	0xe5, 0x13, 0xcf, 0x7f, 0xd3, 0x5f, 0xe5, 0x69, 0x41, 0xe4, 0xf9, 0x33, 0x3c, 0x8b, 0x9e, 0x24,
+	0x7a, 0x2e, 0x88, 0x93, 0x59, 0x91, 0x98, 0xd8, 0xd6, 0x0b, 0x7e, 0xf3, 0xf5, 0x6f, 0xf5, 0xb1,
+	0xcd, 0x26, 0x8b, 0x41, 0x6d, 0xe8, 0xce, 0xeb, 0xb3, 0x20, 0xe0, 0x1c, 0xdb, 0x19, 0x3b, 0x84,
+	0x2d, 0x5d, 0x3a, 0xad, 0xcf, 0x9c, 0x51, 0x9d, 0xc7, 0x4a, 0x7d, 0x63, 0x31, 0xc8, 0xf0, 0x9f,
+	0x01, 0xaf, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xd3, 0xc7, 0x77, 0x11, 0x4f, 0x08, 0x00, 0x00,
 }

@@ -107,6 +107,7 @@ goog.exportSymbol('proto.lnrpc.OutPoint', null, global);
 goog.exportSymbol('proto.lnrpc.PayReq', null, global);
 goog.exportSymbol('proto.lnrpc.PayReqString', null, global);
 goog.exportSymbol('proto.lnrpc.Payment', null, global);
+goog.exportSymbol('proto.lnrpc.Payment.PaymentStatus', null, global);
 goog.exportSymbol('proto.lnrpc.PaymentHash', null, global);
 goog.exportSymbol('proto.lnrpc.Peer', null, global);
 goog.exportSymbol('proto.lnrpc.Peer.SyncType', null, global);
@@ -2073,7 +2074,8 @@ proto.lnrpc.Transaction.toObject = function(includeInstance, msg) {
     blockHeight: jspb.Message.getFieldWithDefault(msg, 5, 0),
     timeStamp: jspb.Message.getFieldWithDefault(msg, 6, 0),
     totalFees: jspb.Message.getFieldWithDefault(msg, 7, 0),
-    destAddressesList: jspb.Message.getRepeatedField(msg, 8)
+    destAddressesList: jspb.Message.getRepeatedField(msg, 8),
+    rawTxHex: jspb.Message.getFieldWithDefault(msg, 9, "")
   };
 
   if (includeInstance) {
@@ -2141,6 +2143,10 @@ proto.lnrpc.Transaction.deserializeBinaryFromReader = function(msg, reader) {
     case 8:
       var value = /** @type {string} */ (reader.readString());
       msg.addDestAddresses(value);
+      break;
+    case 9:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setRawTxHex(value);
       break;
     default:
       reader.skipField();
@@ -2224,6 +2230,13 @@ proto.lnrpc.Transaction.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeRepeatedString(
       8,
+      f
+    );
+  }
+  f = message.getRawTxHex();
+  if (f.length > 0) {
+    writer.writeString(
+      9,
       f
     );
   }
@@ -2361,6 +2374,21 @@ proto.lnrpc.Transaction.prototype.addDestAddresses = function(value, opt_index) 
 
 proto.lnrpc.Transaction.prototype.clearDestAddressesList = function() {
   this.setDestAddressesList([]);
+};
+
+
+/**
+ * optional string raw_tx_hex = 9;
+ * @return {string}
+ */
+proto.lnrpc.Transaction.prototype.getRawTxHex = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 9, ""));
+};
+
+
+/** @param {string} value */
+proto.lnrpc.Transaction.prototype.setRawTxHex = function(value) {
+  jspb.Message.setField(this, 9, value);
 };
 
 
@@ -3621,19 +3649,12 @@ proto.lnrpc.SendResponse.prototype.setPaymentHash = function(value) {
  * @constructor
  */
 proto.lnrpc.SendToRouteRequest = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.lnrpc.SendToRouteRequest.repeatedFields_, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.lnrpc.SendToRouteRequest, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.lnrpc.SendToRouteRequest.displayName = 'proto.lnrpc.SendToRouteRequest';
 }
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.lnrpc.SendToRouteRequest.repeatedFields_ = [3];
-
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -3665,8 +3686,6 @@ proto.lnrpc.SendToRouteRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     paymentHash: msg.getPaymentHash_asB64(),
     paymentHashString: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    routesList: jspb.Message.toObjectList(msg.getRoutesList(),
-    proto.lnrpc.Route.toObject, includeInstance),
     route: (f = msg.getRoute()) && proto.lnrpc.Route.toObject(includeInstance, f)
   };
 
@@ -3711,11 +3730,6 @@ proto.lnrpc.SendToRouteRequest.deserializeBinaryFromReader = function(msg, reade
     case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.setPaymentHashString(value);
-      break;
-    case 3:
-      var value = new proto.lnrpc.Route;
-      reader.readMessage(value,proto.lnrpc.Route.deserializeBinaryFromReader);
-      msg.addRoutes(value);
       break;
     case 4:
       var value = new proto.lnrpc.Route;
@@ -3763,14 +3777,6 @@ proto.lnrpc.SendToRouteRequest.serializeBinaryToWriter = function(message, write
     writer.writeString(
       2,
       f
-    );
-  }
-  f = message.getRoutesList();
-  if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      3,
-      f,
-      proto.lnrpc.Route.serializeBinaryToWriter
     );
   }
   f = message.getRoute();
@@ -3835,37 +3841,6 @@ proto.lnrpc.SendToRouteRequest.prototype.getPaymentHashString = function() {
 /** @param {string} value */
 proto.lnrpc.SendToRouteRequest.prototype.setPaymentHashString = function(value) {
   jspb.Message.setField(this, 2, value);
-};
-
-
-/**
- * repeated Route routes = 3;
- * @return {!Array.<!proto.lnrpc.Route>}
- */
-proto.lnrpc.SendToRouteRequest.prototype.getRoutesList = function() {
-  return /** @type{!Array.<!proto.lnrpc.Route>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.lnrpc.Route, 3));
-};
-
-
-/** @param {!Array.<!proto.lnrpc.Route>} value */
-proto.lnrpc.SendToRouteRequest.prototype.setRoutesList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 3, value);
-};
-
-
-/**
- * @param {!proto.lnrpc.Route=} opt_value
- * @param {number=} opt_index
- * @return {!proto.lnrpc.Route}
- */
-proto.lnrpc.SendToRouteRequest.prototype.addRoutes = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 3, opt_value, proto.lnrpc.Route, opt_index);
-};
-
-
-proto.lnrpc.SendToRouteRequest.prototype.clearRoutesList = function() {
-  this.setRoutesList([]);
 };
 
 
@@ -10490,7 +10465,8 @@ proto.lnrpc.GetInfoResponse.toObject = function(includeInstance, msg) {
     version: jspb.Message.getFieldWithDefault(msg, 14, ""),
     numInactiveChannels: jspb.Message.getFieldWithDefault(msg, 15, 0),
     chainsList: jspb.Message.toObjectList(msg.getChainsList(),
-    proto.lnrpc.Chain.toObject, includeInstance)
+    proto.lnrpc.Chain.toObject, includeInstance),
+    color: jspb.Message.getFieldWithDefault(msg, 17, "")
   };
 
   if (includeInstance) {
@@ -10583,6 +10559,10 @@ proto.lnrpc.GetInfoResponse.deserializeBinaryFromReader = function(msg, reader) 
       var value = new proto.lnrpc.Chain;
       reader.readMessage(value,proto.lnrpc.Chain.deserializeBinaryFromReader);
       msg.addChains(value);
+      break;
+    case 17:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setColor(value);
       break;
     default:
       reader.skipField();
@@ -10710,6 +10690,13 @@ proto.lnrpc.GetInfoResponse.serializeBinaryToWriter = function(message, writer) 
       16,
       f,
       proto.lnrpc.Chain.serializeBinaryToWriter
+    );
+  }
+  f = message.getColor();
+  if (f.length > 0) {
+    writer.writeString(
+      17,
+      f
     );
   }
 };
@@ -10956,6 +10943,21 @@ proto.lnrpc.GetInfoResponse.prototype.addChains = function(opt_value, opt_index)
 
 proto.lnrpc.GetInfoResponse.prototype.clearChainsList = function() {
   this.setChainsList([]);
+};
+
+
+/**
+ * optional string color = 17;
+ * @return {string}
+ */
+proto.lnrpc.GetInfoResponse.prototype.getColor = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 17, ""));
+};
+
+
+/** @param {string} value */
+proto.lnrpc.GetInfoResponse.prototype.setColor = function(value) {
+  jspb.Message.setField(this, 17, value);
 };
 
 
@@ -16124,7 +16126,6 @@ proto.lnrpc.QueryRoutesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
     pubKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
     amt: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    numRoutes: jspb.Message.getFieldWithDefault(msg, 3, 0),
     finalCltvDelta: jspb.Message.getFieldWithDefault(msg, 4, 0),
     feeLimit: (f = msg.getFeeLimit()) && proto.lnrpc.FeeLimit.toObject(includeInstance, f),
     ignoredNodesList: msg.getIgnoredNodesList_asB64(),
@@ -16174,10 +16175,6 @@ proto.lnrpc.QueryRoutesRequest.deserializeBinaryFromReader = function(msg, reade
     case 2:
       var value = /** @type {number} */ (reader.readInt64());
       msg.setAmt(value);
-      break;
-    case 3:
-      var value = /** @type {number} */ (reader.readInt32());
-      msg.setNumRoutes(value);
       break;
     case 4:
       var value = /** @type {number} */ (reader.readInt32());
@@ -16241,13 +16238,6 @@ proto.lnrpc.QueryRoutesRequest.serializeBinaryToWriter = function(message, write
   if (f !== 0) {
     writer.writeInt64(
       2,
-      f
-    );
-  }
-  f = message.getNumRoutes();
-  if (f !== 0) {
-    writer.writeInt32(
-      3,
       f
     );
   }
@@ -16318,21 +16308,6 @@ proto.lnrpc.QueryRoutesRequest.prototype.getAmt = function() {
 /** @param {number} value */
 proto.lnrpc.QueryRoutesRequest.prototype.setAmt = function(value) {
   jspb.Message.setField(this, 2, value);
-};
-
-
-/**
- * optional int32 num_routes = 3;
- * @return {number}
- */
-proto.lnrpc.QueryRoutesRequest.prototype.getNumRoutes = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
-};
-
-
-/** @param {number} value */
-proto.lnrpc.QueryRoutesRequest.prototype.setNumRoutes = function(value) {
-  jspb.Message.setField(this, 3, value);
 };
 
 
@@ -17500,7 +17475,8 @@ proto.lnrpc.NodeInfoRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.lnrpc.NodeInfoRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    pubKey: jspb.Message.getFieldWithDefault(msg, 1, "")
+    pubKey: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    includeChannels: jspb.Message.getFieldWithDefault(msg, 2, false)
   };
 
   if (includeInstance) {
@@ -17541,6 +17517,10 @@ proto.lnrpc.NodeInfoRequest.deserializeBinaryFromReader = function(msg, reader) 
       var value = /** @type {string} */ (reader.readString());
       msg.setPubKey(value);
       break;
+    case 2:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setIncludeChannels(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -17577,6 +17557,13 @@ proto.lnrpc.NodeInfoRequest.serializeBinaryToWriter = function(message, writer) 
       f
     );
   }
+  f = message.getIncludeChannels();
+  if (f) {
+    writer.writeBool(
+      2,
+      f
+    );
+  }
 };
 
 
@@ -17595,6 +17582,23 @@ proto.lnrpc.NodeInfoRequest.prototype.setPubKey = function(value) {
 };
 
 
+/**
+ * optional bool include_channels = 2;
+ * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
+ * You should avoid comparisons like {@code val === true/false} in those cases.
+ * @return {boolean}
+ */
+proto.lnrpc.NodeInfoRequest.prototype.getIncludeChannels = function() {
+  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 2, false));
+};
+
+
+/** @param {boolean} value */
+proto.lnrpc.NodeInfoRequest.prototype.setIncludeChannels = function(value) {
+  jspb.Message.setField(this, 2, value);
+};
+
+
 
 /**
  * Generated by JsPbCodeGenerator.
@@ -17607,12 +17611,19 @@ proto.lnrpc.NodeInfoRequest.prototype.setPubKey = function(value) {
  * @constructor
  */
 proto.lnrpc.NodeInfo = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, proto.lnrpc.NodeInfo.repeatedFields_, null);
 };
 goog.inherits(proto.lnrpc.NodeInfo, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   proto.lnrpc.NodeInfo.displayName = 'proto.lnrpc.NodeInfo';
 }
+/**
+ * List of repeated fields within this message type.
+ * @private {!Array<number>}
+ * @const
+ */
+proto.lnrpc.NodeInfo.repeatedFields_ = [4];
+
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -17644,7 +17655,9 @@ proto.lnrpc.NodeInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
     node: (f = msg.getNode()) && proto.lnrpc.LightningNode.toObject(includeInstance, f),
     numChannels: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    totalCapacity: jspb.Message.getFieldWithDefault(msg, 3, 0)
+    totalCapacity: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    channelsList: jspb.Message.toObjectList(msg.getChannelsList(),
+    proto.lnrpc.ChannelEdge.toObject, includeInstance)
   };
 
   if (includeInstance) {
@@ -17693,6 +17706,11 @@ proto.lnrpc.NodeInfo.deserializeBinaryFromReader = function(msg, reader) {
     case 3:
       var value = /** @type {number} */ (reader.readInt64());
       msg.setTotalCapacity(value);
+      break;
+    case 4:
+      var value = new proto.lnrpc.ChannelEdge;
+      reader.readMessage(value,proto.lnrpc.ChannelEdge.deserializeBinaryFromReader);
+      msg.addChannels(value);
       break;
     default:
       reader.skipField();
@@ -17743,6 +17761,14 @@ proto.lnrpc.NodeInfo.serializeBinaryToWriter = function(message, writer) {
     writer.writeInt64(
       3,
       f
+    );
+  }
+  f = message.getChannelsList();
+  if (f.length > 0) {
+    writer.writeRepeatedMessage(
+      4,
+      f,
+      proto.lnrpc.ChannelEdge.serializeBinaryToWriter
     );
   }
 };
@@ -17805,6 +17831,37 @@ proto.lnrpc.NodeInfo.prototype.getTotalCapacity = function() {
 /** @param {number} value */
 proto.lnrpc.NodeInfo.prototype.setTotalCapacity = function(value) {
   jspb.Message.setField(this, 3, value);
+};
+
+
+/**
+ * repeated ChannelEdge channels = 4;
+ * @return {!Array.<!proto.lnrpc.ChannelEdge>}
+ */
+proto.lnrpc.NodeInfo.prototype.getChannelsList = function() {
+  return /** @type{!Array.<!proto.lnrpc.ChannelEdge>} */ (
+    jspb.Message.getRepeatedWrapperField(this, proto.lnrpc.ChannelEdge, 4));
+};
+
+
+/** @param {!Array.<!proto.lnrpc.ChannelEdge>} value */
+proto.lnrpc.NodeInfo.prototype.setChannelsList = function(value) {
+  jspb.Message.setRepeatedWrapperField(this, 4, value);
+};
+
+
+/**
+ * @param {!proto.lnrpc.ChannelEdge=} opt_value
+ * @param {number=} opt_index
+ * @return {!proto.lnrpc.ChannelEdge}
+ */
+proto.lnrpc.NodeInfo.prototype.addChannels = function(opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(this, 4, opt_value, proto.lnrpc.ChannelEdge, opt_index);
+};
+
+
+proto.lnrpc.NodeInfo.prototype.clearChannelsList = function() {
+  this.setChannelsList([]);
 };
 
 
@@ -20563,7 +20620,8 @@ proto.lnrpc.NodeUpdate.toObject = function(includeInstance, msg) {
     addressesList: jspb.Message.getRepeatedField(msg, 1),
     identityKey: jspb.Message.getFieldWithDefault(msg, 2, ""),
     globalFeatures: msg.getGlobalFeatures_asB64(),
-    alias: jspb.Message.getFieldWithDefault(msg, 4, "")
+    alias: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    color: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -20615,6 +20673,10 @@ proto.lnrpc.NodeUpdate.deserializeBinaryFromReader = function(msg, reader) {
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setAlias(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setColor(value);
       break;
     default:
       reader.skipField();
@@ -20670,6 +20732,13 @@ proto.lnrpc.NodeUpdate.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getColor();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -20771,6 +20840,21 @@ proto.lnrpc.NodeUpdate.prototype.getAlias = function() {
 /** @param {string} value */
 proto.lnrpc.NodeUpdate.prototype.setAlias = function(value) {
   jspb.Message.setField(this, 4, value);
+};
+
+
+/**
+ * optional string color = 5;
+ * @return {string}
+ */
+proto.lnrpc.NodeUpdate.prototype.getColor = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/** @param {string} value */
+proto.lnrpc.NodeUpdate.prototype.setColor = function(value) {
+  jspb.Message.setField(this, 5, value);
 };
 
 
@@ -23653,7 +23737,9 @@ proto.lnrpc.Payment.toObject = function(includeInstance, msg) {
     fee: jspb.Message.getFieldWithDefault(msg, 5, 0),
     paymentPreimage: jspb.Message.getFieldWithDefault(msg, 6, ""),
     valueSat: jspb.Message.getFieldWithDefault(msg, 7, 0),
-    valueMsat: jspb.Message.getFieldWithDefault(msg, 8, 0)
+    valueMsat: jspb.Message.getFieldWithDefault(msg, 8, 0),
+    paymentRequest: jspb.Message.getFieldWithDefault(msg, 9, ""),
+    status: jspb.Message.getFieldWithDefault(msg, 10, 0)
   };
 
   if (includeInstance) {
@@ -23721,6 +23807,14 @@ proto.lnrpc.Payment.deserializeBinaryFromReader = function(msg, reader) {
     case 8:
       var value = /** @type {number} */ (reader.readInt64());
       msg.setValueMsat(value);
+      break;
+    case 9:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setPaymentRequest(value);
+      break;
+    case 10:
+      var value = /** @type {!proto.lnrpc.Payment.PaymentStatus} */ (reader.readEnum());
+      msg.setStatus(value);
       break;
     default:
       reader.skipField();
@@ -23807,8 +23901,32 @@ proto.lnrpc.Payment.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getPaymentRequest();
+  if (f.length > 0) {
+    writer.writeString(
+      9,
+      f
+    );
+  }
+  f = message.getStatus();
+  if (f !== 0.0) {
+    writer.writeEnum(
+      10,
+      f
+    );
+  }
 };
 
+
+/**
+ * @enum {number}
+ */
+proto.lnrpc.Payment.PaymentStatus = {
+  UNKNOWN: 0,
+  IN_FLIGHT: 1,
+  SUCCEEDED: 2,
+  FAILED: 3
+};
 
 /**
  * optional string payment_hash = 1;
@@ -23944,6 +24062,36 @@ proto.lnrpc.Payment.prototype.setValueMsat = function(value) {
 };
 
 
+/**
+ * optional string payment_request = 9;
+ * @return {string}
+ */
+proto.lnrpc.Payment.prototype.getPaymentRequest = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 9, ""));
+};
+
+
+/** @param {string} value */
+proto.lnrpc.Payment.prototype.setPaymentRequest = function(value) {
+  jspb.Message.setField(this, 9, value);
+};
+
+
+/**
+ * optional PaymentStatus status = 10;
+ * @return {!proto.lnrpc.Payment.PaymentStatus}
+ */
+proto.lnrpc.Payment.prototype.getStatus = function() {
+  return /** @type {!proto.lnrpc.Payment.PaymentStatus} */ (jspb.Message.getFieldWithDefault(this, 10, 0));
+};
+
+
+/** @param {!proto.lnrpc.Payment.PaymentStatus} value */
+proto.lnrpc.Payment.prototype.setStatus = function(value) {
+  jspb.Message.setField(this, 10, value);
+};
+
+
 
 /**
  * Generated by JsPbCodeGenerator.
@@ -23991,7 +24139,7 @@ proto.lnrpc.ListPaymentsRequest.prototype.toObject = function(opt_includeInstanc
  */
 proto.lnrpc.ListPaymentsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-
+    includeIncomplete: jspb.Message.getFieldWithDefault(msg, 1, false)
   };
 
   if (includeInstance) {
@@ -24028,6 +24176,10 @@ proto.lnrpc.ListPaymentsRequest.deserializeBinaryFromReader = function(msg, read
     }
     var field = reader.getFieldNumber();
     switch (field) {
+    case 1:
+      var value = /** @type {boolean} */ (reader.readBool());
+      msg.setIncludeIncomplete(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -24057,6 +24209,30 @@ proto.lnrpc.ListPaymentsRequest.prototype.serializeBinary = function() {
  */
 proto.lnrpc.ListPaymentsRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
+  f = message.getIncludeIncomplete();
+  if (f) {
+    writer.writeBool(
+      1,
+      f
+    );
+  }
+};
+
+
+/**
+ * optional bool include_incomplete = 1;
+ * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
+ * You should avoid comparisons like {@code val === true/false} in those cases.
+ * @return {boolean}
+ */
+proto.lnrpc.ListPaymentsRequest.prototype.getIncludeIncomplete = function() {
+  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 1, false));
+};
+
+
+/** @param {boolean} value */
+proto.lnrpc.ListPaymentsRequest.prototype.setIncludeIncomplete = function(value) {
+  jspb.Message.setField(this, 1, value);
 };
 
 
