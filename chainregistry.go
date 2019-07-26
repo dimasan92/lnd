@@ -783,6 +783,7 @@ func initNeutrinoBackend(chainDir string) (*neutrino.ChainService, func(), error
 	neutrino.MaxPeers = 8
 	neutrino.BanDuration = time.Hour * 48
 	neutrino.UserAgentName = cfg.NeutrinoMode.UserAgentName
+	neutrino.UserAgentVersion = cfg.NeutrinoMode.UserAgentVersion
 
 	neutrinoCS, err := neutrino.NewChainService(config)
 	if err != nil {
