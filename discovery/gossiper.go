@@ -42,6 +42,7 @@ var (
 type optionalMsgFields struct {
 	capacity     *btcutil.Amount
 	channelPoint *wire.OutPoint
+	turboID      lnwire.ShortChannelID
 }
 
 // apply applies the optional fields within the functional options.
@@ -69,6 +70,14 @@ func ChannelCapacity(capacity btcutil.Amount) OptionalMsgField {
 func ChannelPoint(op wire.OutPoint) OptionalMsgField {
 	return func(f *optionalMsgFields) {
 		f.channelPoint = &op
+	}
+}
+
+// TurboChannelID is an optional field that lets the gossiper know the turbo
+// short channel id when receiving an announcement for a turbo channel.
+func TurboChannelID(sid lnwire.ShortChannelID) OptionalMsgField {
+	return func(f *optionalMsgFields) {
+		f.turboID = sid
 	}
 }
 
@@ -1723,6 +1732,16 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			}
 			if nMsg.optionalMsgFields.channelPoint != nil {
 				edge.ChannelPoint = *nMsg.optionalMsgFields.channelPoint
+			}
+			var zero lnwire.ShortChannelID
+			if nMsg.optionalMsgFields.turboID != zero {
+				turboID := nMsg.optionalMsgFields.turboID.ToUint64()
+				// Lock the multimutex and delete the old turbo edge.
+				d.channelMtx.Lock(turboID)
+				if err := d.cfg.Router.DeleteEdge(turboID); err != nil {
+					log.Debugf("Couldn't delete turbo edge(%v): %v", turboID, err)
+				}
+				d.channelMtx.Unlock(turboID)
 			}
 		}
 
