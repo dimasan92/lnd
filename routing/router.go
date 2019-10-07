@@ -125,6 +125,11 @@ type ChannelGraphSource interface {
 	// graph.
 	ForEachChannel(func(chanInfo *channeldb.ChannelEdgeInfo,
 		e1, e2 *channeldb.ChannelEdgePolicy) error) error
+
+	// DeleteEdge is used to delete an edge from the underlying graph given a
+	// uint64 short channel id. This is currently used to delete ephemeral
+	// short channel id's used in turbo channels.
+	DeleteEdge(chanID uint64) error
 }
 
 // PaymentAttemptDispatcher is used by the router to send payment attempts onto
@@ -1990,6 +1995,13 @@ func (r *ChannelRouter) AddNode(node *channeldb.LightningNode) error {
 	case <-r.quit:
 		return ErrRouterShuttingDown
 	}
+}
+
+// DeleteEdge is used to delete ephemeral edges that are used in turbo channels.
+//
+// NOTE: This method is part of the ChannelGraphSource interface.
+func (r *ChannelRouter) DeleteEdge(chanID uint64) error {
+	return r.cfg.Graph.DeleteTurboEdge(chanID)
 }
 
 // AddEdge is used to add edge/channel to the topology of the router, after all
