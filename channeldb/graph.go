@@ -1252,6 +1252,56 @@ func (c *ChannelGraph) PruneTip() (*chainhash.Hash, uint32, error) {
 	return &tipHash, tipHeight, nil
 }
 
+// DeleteTurboEdge removes a single edge from the database given by its short
+// channel id. This is used for deleting ephemeral turbo channel edges.
+func (c *ChannelGraph) DeleteTurboEdge(chanID uint64) error {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
+	err := c.db.Update(func(tx *bbolt.Tx) error {
+		edges := tx.Bucket(edgeBucket)
+		if edges == nil {
+			return ErrEdgeNotFound
+		}
+		edgeIndex := edges.Bucket(edgeIndexBucket)
+		if edgeIndex == nil {
+			return ErrEdgeNotFound
+		}
+		chanIndex := edges.Bucket(channelPointBucket)
+		if chanIndex == nil {
+			return ErrEdgeNotFound
+		}
+		nodes := tx.Bucket(nodeBucket)
+		if nodes == nil {
+			return ErrGraphNodeNotFound
+		}
+		zombieIndex, err := edges.CreateBucketIfNotExists(zombieBucket)
+		if err != nil {
+			return err
+		}
+
+		var rawChanID [8]byte
+		byteOrder.PutUint64(rawChanID[:], chanID)
+		err = delChannelEdge(
+			edges, edgeIndex, chanIndex, zombieIndex, nodes,
+			rawChanID[:], false,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	c.rejectCache.remove(chanID)
+	c.chanCache.remove(chanID)
+
+	return nil
+}
+
 // DeleteChannelEdges removes edges with the given channel IDs from the database
 // and marks them as zombies. This ensures that we're unable to re-add it to our
 // database once again. If an edge does not exist within the database, then
