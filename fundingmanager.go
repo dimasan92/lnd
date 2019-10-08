@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
@@ -447,6 +446,10 @@ var (
 	// of being opened.
 	channelOpeningStateBucket = []byte("channelOpeningState")
 
+	// turboChanBucket is the database bucket used to store relevant turbo
+	// chan information while the chan is in the process of being opened.
+	turboChanBucket = []byte("turboChanBucket")
+
 	// ErrChannelNotFound is an error returned when a channel is not known
 	// to us. In this case of the fundingManager, this error is returned
 	// when the channel in question is not considered being in an opening
@@ -508,8 +511,9 @@ func (f *fundingManager) start() error {
 		f.newChanBarriers[chanID] = make(chan struct{})
 		f.barrierMtx.Unlock()
 
-		// TODO(eugene) - Handle this restart case.
-		f.localDiscoverySignals[chanID] = make(chan struct{})
+		if channel.ChannelFlags&lnwire.FFZeroConfSpendablePush == 0 {
+			f.localDiscoverySignals[chanID] = make(chan struct{})
+		}
 
 		// Rebroadcast the funding transaction for any pending channel
 		// that we initiated. If this operation fails due to a reported
@@ -743,11 +747,11 @@ func (f *fundingManager) stop() error {
 	return nil
 }
 
-// nextShortIDCounter increments the sidCtr for use in trusted push channels
-// since these channels don't have short channel id's properly assigned yet.
-func (f *fundingManager) nextShortIDCounter() uint64 {
-	ctr := atomic.AddUint64(&f.sidCtr, 1)
-	return ctr
+// genShortChanID generates a ShortChannelID given a ChannelID.
+// NOTE: The generated ShortChannelID should be one with BlockHeight < 500000.
+// But currently this is not the case.
+func genShortChanID(cid lnwire.ChannelID) lnwire.ShortChannelID {
+	return lnwire.NewShortChanIDFromInt(binary.BigEndian.Uint64(cid[:]))
 }
 
 // nextPendingChanID returns the next free pending channel ID to be used to
@@ -2239,12 +2243,43 @@ func (f *fundingManager) addToRouterGraph(completeChan *channeldb.OpenChannel,
 			"announcement: %v", err)
 	}
 
-	// Send ChannelAnnouncement and ChannelUpdate to the gossiper to add
-	// to the Router's topology.
-	errChan := f.cfg.SendAnnouncement(
-		ann.chanAnn, discovery.ChannelCapacity(completeChan.Capacity),
-		discovery.ChannelPoint(completeChan.FundingOutpoint),
+	// A flag that determines whether we will delete the temporary turbo
+	// ShortChannelID.
+	var (
+		turbo   bool
+		errChan chan error
 	)
+
+	// Check the database to see if this is a turbo channel.
+	sid, err := f.getTurboState(chanID)
+	if err != nil {
+		// This is not a turbo channel.
+	} else if sid.ToUint64() != shortChanID.ToUint64() {
+		// This is a turbo channel whose edge we will delete. If the ID's are
+		// not different, then we are adding the temporary edge to the Router's
+		// topology and shouldn't immediately delete it.
+		turbo = true
+	} else {
+		// TODO - Make sure the temporary ShortChannelIDs for turbo chans don't
+		// get broadcasted to the greater network.
+	}
+
+	// Here we send the ChannelAnnouncement and ChannelUpdate to the gossiper
+	// to add to the Router's topology. We gate the behavior depending on if
+	// this is a turbo channel whose edge we need to delete or not.
+	if turbo {
+		errChan = f.cfg.SendAnnouncement(
+			ann.chanAnn, discovery.ChannelCapacity(completeChan.Capacity),
+			discovery.ChannelPoint(completeChan.FundingOutpoint),
+			discovery.TurboChannelID(*sid),
+		)
+	} else {
+		errChan = f.cfg.SendAnnouncement(
+			ann.chanAnn, discovery.ChannelCapacity(completeChan.Capacity),
+			discovery.ChannelPoint(completeChan.FundingOutpoint),
+		)
+	}
+
 	select {
 	case err := <-errChan:
 		if err != nil {
@@ -2557,14 +2592,26 @@ func (f *fundingManager) handleFundingLocked(fmsg *fundingLockedMsg) {
 	}()
 
 	// If this is a trusted push channel, set the temporary short channel id
-	// which will be used until the funding tx is confirmed.
-	if channel.ChannelFlags&lnwire.FFZeroConfSpendablePush != 0 {
-		// TODO - Set a limit to trusted push channels per peer? This is currently
-		// vulnerable to somebody taking up all of the ShortChannelIDs.
-		ctr := f.nextShortIDCounter()
-		// channel.ShortChannelID = lnwire.NewShortChanIDFromInt(math.MaxUint64 - ctr)
-		channel.ShortChannelID = lnwire.NewShortChanIDFromInt(ctr)
-		channel.Packager = channeldb.NewChannelPackager(channel.ShortChannelID)
+	// which will be used until the funding tx is confirmed. This is only done while
+	// the channel is still pending. Otherwise, the peer could wait until the channel
+	// is marked as open and send the funding locked and mess up our state.
+	if channel.ChannelFlags&lnwire.FFZeroConfSpendablePush != 0 &&
+		channel.IsPending {
+		// TODO - Set a limit to trusted push channels per peer?
+
+		// Mark the channel as turbo in the database. Currently, this just means
+		// setting the ephemeral ShortChannelID in the database and in-memory.
+		turboID := genShortChanID(chanID)
+		if err := channel.MarkTurbo(turboID); err != nil {
+			fndgLog.Errorf("can't mark channel as turbo: %v", err)
+			return
+		}
+
+		// Persist the turbo chan state to the database.
+		if err := f.saveTurboState(chanID, channel.ShortChannelID); err != nil {
+			fndgLog.Errorf("can't save turbo state: %v", err)
+			return
+		}
 
 		// Must add the channel to the router graph (assume valid) and send a
 		// node announcement so that pathfinding works.
@@ -3232,6 +3279,78 @@ func copyPubKey(pub *btcec.PublicKey) *btcec.PublicKey {
 		X:     pub.X,
 		Y:     pub.Y,
 	}
+}
+
+// saveTurboState saves relevant turbo chan information for an opened
+// turbo channel. Currently, this only includes the temporary ShortChannelID.
+func (f *fundingManager) saveTurboState(cid lnwire.ChannelID,
+	sid lnwire.ShortChannelID) error {
+	return f.cfg.Wallet.Cfg.Database.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(turboChanBucket)
+		if err != nil {
+			return err
+		}
+
+		var chanBytes bytes.Buffer
+		if err := lnwire.WriteElement(&chanBytes, cid); err != nil {
+			return err
+		}
+
+		scratch := make([]byte, 8)
+		byteOrder.PutUint64(scratch[:], sid.ToUint64())
+
+		return bucket.Put(chanBytes.Bytes(), scratch)
+	})
+}
+
+// getTurboState retrieves relevant turbo chan information for a given
+// ChannelID. Currently, this just retrieves the temporary ShortChannelID.
+func (f *fundingManager) getTurboState(cid lnwire.ChannelID) (*lnwire.ShortChannelID, error) {
+	var sid lnwire.ShortChannelID
+	err := f.cfg.Wallet.Cfg.Database.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket(turboChanBucket)
+		if bucket == nil {
+			// If the bucket doesn't exist, then no turbo channel exists.
+			return ErrChannelNotFound
+		}
+
+		var chanBytes bytes.Buffer
+		if err := lnwire.WriteElement(&chanBytes, cid); err != nil {
+			return err
+		}
+
+		value := bucket.Get(chanBytes.Bytes())
+		if value == nil {
+			return ErrChannelNotFound
+		}
+
+		sid = lnwire.NewShortChanIDFromInt(byteOrder.Uint64(value[:]))
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &sid, nil
+}
+
+// deleteTurboState deletes turbo chan information for a given ChannelID.
+// This is only to be done when the state is no longer useful and the channel
+// is considered open.
+func (f *fundingManager) deleteTurboState(cid lnwire.ChannelID) error {
+	return f.cfg.Wallet.Cfg.Database.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket(turboChanBucket)
+		if bucket == nil {
+			return fmt.Errorf("Bucket not found")
+		}
+
+		var chanBytes bytes.Buffer
+		if err := lnwire.WriteElement(&chanBytes, cid); err != nil {
+			return err
+		}
+
+		return bucket.Delete(chanBytes.Bytes())
+	})
 }
 
 // saveChannelOpeningState saves the channelOpeningState for the provided
