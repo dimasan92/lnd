@@ -735,6 +735,39 @@ func (c *OpenChannel) fullSync(tx *bbolt.Tx) error {
 	return putOpenChannel(chanBucket, c)
 }
 
+// MarkTurbo sets the channel's ShortChannelID and ChannelPackager. It is
+// the same as MarkAsOpen but doesn't set IsPending to false. This is always
+// called BEFORE MarkAsOpen for turbo channels.
+func (c *OpenChannel) MarkTurbo(turboID lnwire.ShortChannelID) error {
+	c.Lock()
+	defer c.Unlock()
+
+	if err := c.Db.Update(func(tx *bbolt.Tx) error {
+		chanBucket, err := fetchChanBucket(
+			tx, c.IdentityPub, &c.FundingOutpoint, c.ChainHash,
+		)
+		if err != nil {
+			return err
+		}
+
+		channel, err := fetchOpenChannel(chanBucket, &c.FundingOutpoint)
+		if err != nil {
+			return err
+		}
+
+		channel.ShortChannelID = turboID
+
+		return putOpenChannel(chanBucket, channel)
+	}); err != nil {
+		return err
+	}
+
+	c.ShortChannelID = turboID
+	c.Packager = NewChannelPackager(turboID)
+
+	return nil
+}
+
 // MarkAsOpen marks a channel as fully open given a locator that uniquely
 // describes its location within the chain.
 func (c *OpenChannel) MarkAsOpen(openLoc lnwire.ShortChannelID) error {
