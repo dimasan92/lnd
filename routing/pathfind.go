@@ -478,6 +478,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	if len(r.DestCustomRecords) > 0 &&
 		!features.HasFeature(lnwire.TLVOnionPayloadOptional) {
 
+		printJSON((r)
 		return nil, errNoTlvPayload
 	}
 
